@@ -1,0 +1,11 @@
+{
+  "name": "lwa_auth",
+  "version": "1.0.0",
+  "description": "Authenticate Login with Amazon (LWA) cookie for nginx",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
