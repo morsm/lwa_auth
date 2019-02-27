@@ -73,6 +73,9 @@ async function handleHttpRequest(request, response)
     response.end();
 
     // Clean up cookie cache
+    // Older than 30 minutes
+    var thirtyAgo = new Date(new Date().getTime() - 30 * 60 * 1000);
+    db.get("cookies").remove(record => new Date(record.date) < thirtyAgo).write();
 }
 
 async function validateToken(token)
