@@ -10,11 +10,24 @@ const https = require('https');
 var Promise = require('promise');
 var bodyJson = require("body/json");
 
+// Cookie cache
+const low = require('lowdb');
+const FileSync = require('lowdb/adapters/FileSync');
+
+const adapter = new FileSync('cookiecache.json');
+const db = low(adapter);
+
 // Load list of allowed email addresses. Should contain array of strings under the "addresses" property.
 const VALID_EMAILS = require('./emails.json');
 
 // Amazon parameters
 const LWA_HOST = "api.amazon.com";
+
+
+/////// ENTRY POINT ////////
+
+// Setup cache
+db.defaults({ cookies: []}).write();
 
 // Setup HTTP server
 const server = http.createServer(handleHttpRequest);
@@ -58,16 +71,42 @@ async function handleHttpRequest(request, response)
     response.statusCode = status;
     response.status = statusMessage;
     response.end();
+
+    // Clean up cookie cache
 }
 
 async function validateToken(token)
 {
-    var lwaResponse = await lwaHttpsGetRequest(token);
-    console.log("LWA response", lwaResponse);
+    var userEmail = "";
+    var newToken = false;
 
-    // Sill hardcoded email check
-    var mailFound = VALID_EMAILS.addresses.find(email => { return email == lwaResponse.email; });
-    if (! mailFound) throw("Unknown user " + lwaResponse.email);
+    // Cookie in cache?
+    var foundInCache = db.get("cookies").find({ token: token }).value();
+    if (foundInCache)
+    {
+        userEmail = foundInCache.email;
+        console.log("Found token in cache, email:", userEmail);
+    }
+    else
+    {
+        // Not in cache, ask Amazon
+        var lwaResponse = await lwaHttpsGetRequest(token);
+        console.log("LWA response", lwaResponse);
+
+        userEmail = lwaResponse.email;
+        newToken = true;
+    }
+
+    // Email check in provided list
+    var mailFound = VALID_EMAILS.addresses.find(email => { return email == userEmail; });
+    if (! mailFound) throw("Unknown user " + userEmail);
+
+    // If we get here, it is a valid token
+    // See if we need to store it in the cache
+    if (newToken)
+    {
+        db.get("cookies").push({token: token, email: userEmail, date: new Date()}).write();
+    }
 }
 
 async function lwaHttpsGetRequest(token)
