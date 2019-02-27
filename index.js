@@ -10,6 +10,9 @@ const https = require('https');
 var Promise = require('promise');
 var bodyJson = require("body/json");
 
+// Load list of allowed email addresses. Should contain array of strings under the "addresses" property.
+const VALID_EMAILS = require('./emails.json');
+
 // Amazon parameters
 const LWA_HOST = "api.amazon.com";
 
@@ -63,7 +66,8 @@ async function validateToken(token)
     console.log("LWA response", lwaResponse);
 
     // Sill hardcoded email check
-    if (lwaResponse.email != "info@termors.net") throw("Unknown user " + lwaResponse.email);
+    var mailFound = VALID_EMAILS.addresses.find(email => { return email == lwaResponse.email; });
+    if (! mailFound) throw("Unknown user " + lwaResponse.email);
 }
 
 async function lwaHttpsGetRequest(token)
